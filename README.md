@@ -11,6 +11,7 @@
 ---
 
 ## Table of Contents
+
 1. Project overview
 2. Goals & success criteria
 3. Functional & non-functional requirements
@@ -31,6 +32,7 @@
 ---
 
 ## 1. Project overview
+
 A lightweight-to-midweight Project Management System built for software development teams. The product focuses on Agile workflows (backlog → sprint → kanban → done), Git integration, and developer-friendly UX. It aims to be simpler than Jira but more developer-centered than Trello.
 
 **Target users:** engineering teams, product managers, QA.
@@ -40,6 +42,7 @@ A lightweight-to-midweight Project Management System built for software developm
 ---
 
 ## 2. Goals & success criteria
+
 - Allow teams to create/manage projects, sprints and tasks.
 - Provide a responsive Kanban board with drag-and-drop.
 - Provide sprint metrics: burndown chart and velocity.
@@ -47,6 +50,7 @@ A lightweight-to-midweight Project Management System built for software developm
 - Support role-based permissions (Admin, PM, Dev, QA).
 
 **Success criteria (MVP):**
+
 - Create a project, add tasks to backlog, create a sprint and move tasks into sprint.
 - Run sprint for 2 weeks and show burndown chart reflecting task completion.
 - Developers can move tasks across columns and comment on tasks.
@@ -54,7 +58,9 @@ A lightweight-to-midweight Project Management System built for software developm
 ---
 
 ## 3. Functional & non-functional requirements
+
 ### Functional
+
 - User auth (signup, login, password reset)
 - Roles and permissions
 - CRUD for Projects, Sprints, Tasks, Comments, Attachments
@@ -65,6 +71,7 @@ A lightweight-to-midweight Project Management System built for software developm
 - Notifications & mentions
 
 ### Non-functional
+
 - Scalability to medium sized teams (100s of users/projects)
 - Reasonable response time (<300ms for common API calls)
 - Secure file uploads, authentication, and permissions
@@ -73,6 +80,7 @@ A lightweight-to-midweight Project Management System built for software developm
 ---
 
 ## 4. High-level architecture
+
 - **Frontend:** ReactJS (Vite or CRA), TailwindCSS or a component library (MUI or shadcn/ui). Uses React Query or Redux Toolkit Query for API calls. WebSocket client for real-time updates.
 - **Backend:** Django + Django REST Framework (DRF). Use Django Channels for WebSocket support. Celery + Redis for background jobs.
 - **DB:** PostgreSQL
@@ -85,9 +93,11 @@ A lightweight-to-midweight Project Management System built for software developm
 ---
 
 ## 5. Data model (Django-centric)
+
 Below are suggested Django models and principal fields. Use `ForeignKey` and `ManyToMany` appropriately.
 
 ### Models overview
+
 - `User` (built-in or custom) — extended with role or team membership
 - `Organization` (optional) — for multi-tenant SaaS
 - `Project`
@@ -100,6 +110,7 @@ Below are suggested Django models and principal fields. Use `ForeignKey` and `Ma
 - `ActivityLog` (audit trail)
 
 ### Example: `Task` fields (key ones)
+
 - `id` (uuid)
 - `project` (FK)
 - `title` (str)
@@ -117,25 +128,30 @@ Below are suggested Django models and principal fields. Use `ForeignKey` and `Ma
 ---
 
 ## 6. API design (REST + WebSocket events)
+
 Design the API using RESTful resources and include the most used endpoints. Use viewsets for common patterns.
 
 **Auth**
+
 - `POST /api/auth/login/` -> returns JWT or token
 - `POST /api/auth/register/`
 - `POST /api/auth/refresh/`
 
 **Projects**
+
 - `GET /api/projects/` (list / filter)
 - `POST /api/projects/` (create)
 - `GET /api/projects/:id/` (retrieve)
 - `PATCH /api/projects/:id/` (update)
 
 **Sprints**
+
 - `GET /api/projects/:project_id/sprints/`
 - `POST /api/projects/:project_id/sprints/`
 - `POST /api/sprints/:id/close/` (close and calculate metrics)
 
 **Tasks**
+
 - `GET /api/projects/:project_id/tasks/` (filter by sprint, assignee, status)
 - `POST /api/projects/:project_id/tasks/`
 - `PATCH /api/tasks/:id/` (update status, assignee, story points)
@@ -145,24 +161,29 @@ Design the API using RESTful resources and include the most used endpoints. Use 
 **Kanban specific**\n- `POST /api/boards/:board_id/move/` -> body: `{task_id, from_column, to_column, position}` (or do reorder via PATCH with order field)
 
 **WebSocket events** (Django Channels)
+
 - `task.updated` — broadcast when a task is updated
 - `task.moved` — for real-time kanban
 - `comment.added`
 - `sprint.closed` (update clients to refresh metrics)
 
 **Git webhook**
+
 - `POST /api/integrations/github/webhook/` — parse commits/PRs, map commit messages/PR titles to `TASK-<id>` tags and attach them to tasks
 
 **Pagination & filtering**
+
 - Use limit/offset or cursor pagination for lists
 - Support `?status=in_progress&assignee=42&sprint=5` style filters
 
 ---
 
 ## 7. Backend implementation — step-by-step
+
 This section assumes you have Python 3.10+ and PostgreSQL.
 
 ### Setup & project skeleton (Day 1)
+
 1. Create repository and `README.md` with goals.
 2. Create Python virtual environment and install deps: `django`, `djangorestframework`, `django-filter`, `djangorestframework-simplejwt`, `channels`, `channels-redis`, `celery`, `redis`, `psycopg2-binary`, `drf-yasg` (openapi), `django-storages[boto3]`.
 3. `django-admin startproject pms_backend` and create apps: `users`, `projects`, `tasks`, `notifications`, `integrations`.
@@ -170,12 +191,14 @@ This section assumes you have Python 3.10+ and PostgreSQL.
 5. Configure static/media storage (S3) and file upload limits.
 
 ### Models & Migrations (Day 2–3)
+
 1. Implement core models described in section 5.
 2. Add indexes on frequently filtered fields (status, sprint, assignee).
 3. Run `makemigrations` and `migrate`.
 4. Register models in admin for quick inspection.
 
 ### API & Serializers (Day 4–7)
+
 1. Create DRF serializers for Project, Sprint, Task, Comment, Attachment.
 2. Use `ModelViewSet` for CRUD where appropriate. Add custom actions (e.g., `close` for sprints).
 3. Add permissions classes (IsAuthenticated, Role-based permission checks).
@@ -183,32 +206,39 @@ This section assumes you have Python 3.10+ and PostgreSQL.
 5. Add simple unit tests for serializers and view logic.
 
 ### Authentication & Permissions (Day 7–8)
+
 1. Integrate `djangorestframework-simplejwt` for JWT authentication.
 2. Implement role-based permission checks using custom permission classes.
 
 ### Background tasks & notifications (Day 9–11)
+
 1. Setup Celery with Redis broker. Create tasks for sending emails, digest notifications, and scheduled sprint-calculation jobs.
 2. Implement activity log entries via signals on model updates.
 
 ### Real-time (Day 11–14)
+
 1. Add Django Channels and channel layers with Redis.
 2. Implement group channels for project rooms and broadcast events (task moved, comment added).
 3. Secure WebSocket with token auth.
 
 ### Integrations (Day 14–18)
+
 1. GitHub webhook endpoint: validate signature and parse events.
 2. Map commit messages like `TASK-<uuid>` or PR mentions `refs #<task_id>` to tasks. Create or update task `linked_commits` data.
 3. Slack integrationhook (optional): notify channels on sprint close / critical bug.
 
 ### Metrics & Analytics (Day 18–21)
+
 1. Implement burndown calculation: store daily snapshot of remaining story points per sprint or compute from task history.
 2. Add endpoints to fetch chart data for frontend.
 
 ### Admin & Settings (Day 22–24)
+
 1. Add admin pages for organizations, projects and integrations.
 2. Add feature flags toggles (simple config table or using `django-waffle`).
 
 ### Testing & polish (Day 25–28)
+
 1. Add unit tests for business logic (e.g., sprint closing, burndown calc).
 2. Add integration tests for key API flows.
 3. Document API with OpenAPI/Swagger.
@@ -216,45 +246,55 @@ This section assumes you have Python 3.10+ and PostgreSQL.
 ---
 
 ## 8. Frontend implementation — step-by-step
+
 Choose Vite + React + TypeScript for developer experience.
 
 ### Project scaffold (Day 1)
+
 1. `pnpm create vite pms-frontend --template react-ts` (or CRA)
 2. Add packages: `react-router-dom`, `axios` (or use `fetch`), `@tanstack/react-query` or `@reduxjs/toolkit/query`, `react-beautiful-dnd`, `recharts` (or `chart.js`), `tailwindcss`, `clsx`, `date-fns`, `swr` (optional), `socket.io-client` if used, else native WebSocket.
 3. Configure tailwind.
 
 ### Authentication flow (Day 2–4)
+
 1. Create login/register pages and token storage (httpOnly cookie via backend or secure localStorage if necessary).
 2. Create protected route guards and a top-level `AuthProvider` or RTK slice.
 
 ### Routing & Layout (Day 4–6)
+
 1. Layout: Sidebar (Projects), Topbar (search, notifications), Main area.
 2. Routes: Dashboard, Project/:id, Project/:id/board, Project/:id/sprints, Profile, Settings.
 
 ### Tasks & Kanban (Day 6–12)
+
 1. Create TaskCard component (shows title, assignee avatar, story points, labels).
 2. Use `react-beautiful-dnd` for columns. Implement drag-and-drop and call backend `move` or `PATCH` task API.
 3. Implement optimistic updates with React Query or RTK Query.
 4. Task modal: full task details, comments, attachments, change history.
 
 ### Sprint flow & charts (Day 12–16)
+
 1. Sprint create/edit modal (start/end dates, goals, capacity).
 2. Burndown chart component using Recharts: fetch daily snapshots endpoint and render line chart.
 3. Sprint backlog view: select tasks to move into the sprint.
 
 ### Realtime updates (Day 16–18)
+
 1. Connect to WebSocket channels for a project.
 2. Update board on `task.moved` events.
 
 ### Integrations UI (Day 18–20)
+
 1. Git integrations page: connect GitHub via OAuth app, show linked PRs/commits.
 2. Webhook management.
 
 ### Settings & Admin UI (Day 20–22)
+
 1. Role management UI, invite team members.
 2. Project settings: workflow columns configuration, labels.
 
 ### Polish & UX (Day 22–28)
+
 1. Add keyboard shortcuts (create task `t`, quick search `cmd+k`).
 2. Add onboarding tooltips and empty states.
 3. Accessibility checks (aria attributes, keyboard navigation).
@@ -262,18 +302,22 @@ Choose Vite + React + TypeScript for developer experience.
 ---
 
 ## 9. Main feature deep dive: Sprint & Task Management (step-by-step)
+
 This is the central feature that defines the product. Below is a step-by-step guide to design, implement, test and ship it.
 
 ### 9.1 Feature definition (one-sentence)
+
 Allow teams to maintain a backlog, create sprints, plan and run sprints with a Kanban board and burndown chart reflecting progress (story points or hours).
 
 ### 9.2 User stories (prioritized)
+
 1. As a PM, I can create a sprint with start and end dates and move tasks from backlog to sprint.
 2. As a Developer, I can update a task status and those changes reflect on the sprint board and burndown chart.
 3. As a PM, I can close a sprint and see the report (completed vs carried over tasks, velocity).
 4. As a Developer, I can link commits/PRs to a task and see build status.
 
 ### 9.3 UX flow (step-by-step)
+
 1. PM opens Project → Backlog page.
 2. PM selects tasks and adds them to a new sprint (drag or multi-select + add to sprint).
 3. Developer opens Sprint board and drags tasks across columns. On drop, the frontend calls `PATCH /api/tasks/:id` to change `status` and optionally `position`.
@@ -282,6 +326,7 @@ Allow teams to maintain a backlog, create sprints, plan and run sprints with a K
 6. On sprint close, backend calculates completed story points, velocity, and marks tasks not done as backlog items for the next sprint.
 
 ### 9.4 Backend steps (implementing the feature)
+
 1. **Design models**: ensure `Task.story_points` and `Task.sprint` fields exist. Add `Sprint.capacity` and `Sprint.start_date`, `end_date`.
 2. **API endpoints**: implement `POST /projects/:project_id/sprints/` and `POST /sprints/:id/close/`.
 3. **Task updates**: on `PATCH /tasks/:id/`, when `status` changes, create `ActivityLog` entry and emit channel event.
@@ -290,16 +335,19 @@ Allow teams to maintain a backlog, create sprints, plan and run sprints with a K
 6. **Sprint close logic**: when closing sprint, set sprint state to `closed`, compute statistics, move unfinished tasks back to backlog (clear `sprint` field), and record `SprintReport` with metrics.
 
 ### 9.5 Frontend steps (implementing the feature)
+
 1. **Backlog UI**: multi-select + context action `Add to sprint` that posts to `PATCH /tasks/:id/` with `sprint` id.
 2. **Sprint board**: columns reflect workflow, drag-and-drop updates `task.status` and `position`. Use optimistic UI updates.
 3. **Burndown chart**: call `GET /sprints/:id/burndown/` and render line chart. Also add tooltip with raw numbers.
 4. **Sprint close modal**: run `POST /sprints/:id/close/` and show summary with `completed`, `carried_over`, `velocity`.
 
 ### 9.6 Real-time and conflict handling
+
 - Use pessimistic or optimistic locking when necessary. For drag-and-drop, optimistic UI followed by API call; if API returns conflict, refresh affected columns.
 - Broadcast events for `task.created`, `task.updated`, `task.moved` so other clients reflect the change.
 
 ### 9.7 Acceptance criteria for main feature
+
 - A sprint can be created and tasks added to it.
 - Tasks moved across columns update status and are visible to other users in near real-time.
 - Burndown chart shows daily remaining story points, updating automatically after snapshot runs or via immediate recalculation on major changes.
@@ -308,19 +356,24 @@ Allow teams to maintain a backlog, create sprints, plan and run sprints with a K
 ---
 
 ## 10. Integrations
+
 ### GitHub/GitLab
+
 - Accept webhooks and map commit messages or PR references to tasks (convention: `TASK-<uuid>` or `#<task number>`).
 - Use OAuth to allow installation and read repository metadata.
 
 ### CI/CD
+
 - Display build status in task details by consuming CI webhook payloads.
 
 ### Chat (Slack/Discord)
+
 - Post messages to channels when sprints start/close or when critical bugs opened.
 
 ---
 
 ## 11. Testing strategy
+
 - **Unit tests:** models, serializers, utilities (burndown calc)
 - **API integration tests:** authentication flows, task lifecycle, sprint close
 - **E2E tests:** Cypress to cover backlog → sprint → board → close
@@ -330,6 +383,7 @@ Allow teams to maintain a backlog, create sprints, plan and run sprints with a K
 ---
 
 ## 12. CI/CD & deployment
+
 - **Use GitHub Actions** pipeline:
   - `lint` (flake8, eslint), `test` for backend & frontend, build frontend, build docker images.
   - On `main` branch: run migrations, deploy Docker image to hosting provider.
@@ -338,6 +392,7 @@ Allow teams to maintain a backlog, create sprints, plan and run sprints with a K
 - **Frontend hosting:** Vercel or Netlify for static SPA.
 
 **Deployment checklist**
+
 - Environment variables present and secrets configured
 - Database migrations run and verified
 - Celery workers online
@@ -347,6 +402,7 @@ Allow teams to maintain a backlog, create sprints, plan and run sprints with a K
 ---
 
 ## 13. Observability, monitoring & security
+
 - **Error tracking:** Sentry for backend and frontend
 - **Logs:** centralized log shipping (Papertrail, Loggly)
 - **Metrics:** Prometheus + Grafana (optional) or managed monitoring
@@ -360,6 +416,7 @@ Allow teams to maintain a backlog, create sprints, plan and run sprints with a K
 ---
 
 ## 14. Project plan, milestones & estimates (example)
+
 This is a sample 8–10 week plan for a small team (1 backend, 1 frontend, 1 QA/PM):
 
 **Week 0 — Prep**: repo, infra planning, basic design mockups
@@ -374,7 +431,9 @@ This is a sample 8–10 week plan for a small team (1 backend, 1 frontend, 1 QA/
 ---
 
 ## 15. Acceptance criteria and checklists
+
 **MVP checklist:**
+
 - [ ] Auth working (login, register)
 - [ ] CRUD for projects & tasks
 - [ ] Kanban board with drag-and-drop
@@ -387,9 +446,11 @@ This is a sample 8–10 week plan for a small team (1 backend, 1 frontend, 1 QA/
 ---
 
 ## 16. Appendix: sample code snippets
-> Note: These are *example* snippets — adapt for your project.
+
+> Note: These are _example_ snippets — adapt for your project.
 
 ### 16.1 Django `Task` model (simplified)
+
 ```python
 # tasks/models.py
 import uuid
@@ -432,6 +493,7 @@ class Task(models.Model):
 ```
 
 ### 16.2 DRF serializer & viewset snippet
+
 ```python
 # tasks/serializers.py
 from rest_framework import serializers
@@ -454,13 +516,14 @@ class TaskViewSet(viewsets.ModelViewSet):
 ```
 
 ### 16.3 Frontend: Kanban column skeleton (React + react-beautiful-dnd)
-```jsx
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
-export default function Board({columns, onDragEnd}) {
+```jsx
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+
+export default function Board({ columns, onDragEnd }) {
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      {columns.map(col => (
+      {columns.map((col) => (
         <Droppable droppableId={col.id} key={col.id}>
           {(provided) => (
             <div ref={provided.innerRef} {...provided.droppableProps}>
@@ -468,7 +531,11 @@ export default function Board({columns, onDragEnd}) {
               {col.tasks.map((task, index) => (
                 <Draggable draggableId={task.id} index={index} key={task.id}>
                   {(provided) => (
-                    <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                    >
                       <TaskCard task={task} />
                     </div>
                   )}
@@ -487,16 +554,7 @@ export default function Board({columns, onDragEnd}) {
 ---
 
 ### Final notes
+
 - Start small and iterate. Build a working MVP quickly and collect team feedback.
 - Use feature flags to launch advanced features to a subset of teams.
 - Document API and have a small Postman/Insomnia collection for QA and integrations.
-
----
-
-If you want, I can:
-- Export this as a `README.md` file for download,
-- Generate a prioritized backlog and tasks for the first 4 sprints,
-- Create initial Django model files or a starter repo tree scaffold.
-
-Tell me which of these you'd like and I will produce it next.
-
